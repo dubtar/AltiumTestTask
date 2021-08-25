@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -6,7 +7,6 @@ namespace AltiumTestTask.Generator
 {
     public static class Program
     {
-        
         internal static int Main(string[] args)
         {
             if (args.Length == 0)
@@ -44,26 +44,40 @@ namespace AltiumTestTask.Generator
         private const string SEPARATOR = ". ";
         private const int MIN_STRING_LENGTH = 5;
         private const int MAX_STRING_LENGTH = 50;
+        private const double DUPLICATE_STRING_CHANCE = 0.02; // 2%
+        private const int DUPLICATE_STRINGS_BAG_SIZE = 5; // keep so many to be used as duplicates
+
         private static void CreateFile(string fileName, ulong targetSize)
         {
             using var file = File.CreateText(fileName);
             ulong size = 0;
             StringBuilder sb = new(MAX_STRING_LENGTH); // max 50  per line
             var random = new Random();
+            repeatedStrings.Clear(); // just in case
             while (size < targetSize)
             {
                 sb.Clear();
                 // add number
                 sb.Append(GenerateNumber(random));
                 sb.Append(SEPARATOR);
-                GenerateString(random, sb, MAX_STRING_LENGTH - sb.Length); 
+                GenerateString(random, sb, MAX_STRING_LENGTH - sb.Length);
                 file.WriteLine(sb);
                 size += (ulong)sb.Length;
             }
         }
 
+        private static List<string> repeatedStrings = new();
+
         private static void GenerateString(Random random, StringBuilder sb, int maxLength)
         {
+            var rnd = random.NextDouble();
+            if (rnd < DUPLICATE_STRING_CHANCE && repeatedStrings.Count >= DUPLICATE_STRINGS_BAG_SIZE)
+            {
+                sb.Append(repeatedStrings[random.Next(repeatedStrings.Count)]);
+                Console.WriteLine("Dup: " + sb);
+                return;
+            }
+
             // for start just random string of latin letters and space
             var targetLen = random.Next(maxLength - MIN_STRING_LENGTH) + MIN_STRING_LENGTH;
             // add first letter (not space) as upper
@@ -74,23 +88,39 @@ namespace AltiumTestTask.Generator
                 if (c > 'z') c = ' ';
                 sb.Append(c);
             }
+
+            switch (rnd)
+            {
+                case < DUPLICATE_STRING_CHANCE:
+                {
+                    // add to repeatedStrings
+                    var str = sb.ToString();
+                    repeatedStrings.Add(str[(str.IndexOf(SEPARATOR, StringComparison.Ordinal) + SEPARATOR.Length)..]);
+                    break;
+                }
+                case > 1 - DUPLICATE_STRING_CHANCE when repeatedStrings.Count == DUPLICATE_STRINGS_BAG_SIZE:
+                {
+                    // replace random string in  list
+                    var str = sb.ToString();
+                    str = str[(str.IndexOf(SEPARATOR, StringComparison.Ordinal) + SEPARATOR.Length)..];
+                    repeatedStrings[(int)(rnd * DUPLICATE_STRING_CHANCE)] =  str;
+                    break;
+                }
+            }
         }
 
         private static int GenerateNumber(Random random)
         {
-            // a bit modified version of Normal distribution generator found on SO
-            const double DEVIATION = 10 ^ 5; // mean is 0
-            double u1 = 1.0 - random.NextDouble();
-            double u2 = 1.0 - random.NextDouble();
-            double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
-            var res = Math.Abs(Math.Floor(randStdNormal * DEVIATION));
-            if (res > int.MaxValue) res %= int.MaxValue;
-            return (int)res;
+            var res = 10000.0 * -Math.Log(random.NextDouble());
+            unchecked // we don't care of overflow
+            {
+                return (int)res;
+            }
         }
 
         private static (ulong, string) ParseArguments(string[] args)
         {
-            var argSize  = args[0];
+            var argSize = args[0];
             if (string.IsNullOrWhiteSpace(argSize))
             {
                 throw new ArgumentException("invalid size argument");
