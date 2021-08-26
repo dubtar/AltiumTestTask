@@ -2,6 +2,13 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AltiumTestTask.Generator", "AltiumTestTask.Generator\AltiumTestTask.Generator.csproj", "{17D8AE3B-936E-492A-89CE-6C57167E32E0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AltiumTestTask.Sorter", "AltiumTestTask.Sorter\AltiumTestTask.Sorter.csproj", "{9E80ED66-C898-48D3-8531-99740CEF9F50}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{03FF973A-E325-4B51-B746-A870171A50F5}"
+ProjectSection(SolutionItems) = preProject
+	Constants.cs = Constants.cs
+EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +19,11 @@ Global
 		{17D8AE3B-936E-492A-89CE-6C57167E32E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{17D8AE3B-936E-492A-89CE-6C57167E32E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{17D8AE3B-936E-492A-89CE-6C57167E32E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{17D8AE3B-936E-492A-89CE-6C57167E32E0}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{9E80ED66-C898-48D3-8531-99740CEF9F50}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E80ED66-C898-48D3-8531-99740CEF9F50}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E80ED66-C898-48D3-8531-99740CEF9F50}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E80ED66-C898-48D3-8531-99740CEF9F50}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E80ED66-C898-48D3-8531-99740CEF9F50}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

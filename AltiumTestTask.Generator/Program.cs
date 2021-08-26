@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
+using static AltiumTestTask.Constants;
 
 namespace AltiumTestTask.Generator
 {
@@ -41,11 +43,6 @@ namespace AltiumTestTask.Generator
             return 0;
         }
 
-        private const string SEPARATOR = ". ";
-        private const int MIN_STRING_LENGTH = 5;
-        private const int MAX_STRING_LENGTH = 50;
-        private const double DUPLICATE_STRING_CHANCE = 0.02; // 2%
-        private const int DUPLICATE_STRINGS_BAG_SIZE = 5; // keep so many to be used as duplicates
 
         private static void CreateFile(string fileName, ulong targetSize)
         {
@@ -74,7 +71,7 @@ namespace AltiumTestTask.Generator
             if (rnd < DUPLICATE_STRING_CHANCE && repeatedStrings.Count >= DUPLICATE_STRINGS_BAG_SIZE)
             {
                 sb.Append(repeatedStrings[random.Next(repeatedStrings.Count)]);
-                Console.WriteLine("Dup: " + sb);
+                Debug.WriteLine("Dup: " + sb);
                 return;
             }
 
