@@ -79,10 +79,14 @@ namespace AltiumTestTask.Generator
             var targetLen = random.Next(maxLength - MIN_STRING_LENGTH) + MIN_STRING_LENGTH;
             // add first letter (not space) as upper
             sb.Append((char)(random.Next('Z' - 'A' + 1) + 'A'));
+            var previousIsSpace = true;
             for (var i = 1; i < targetLen; i++)
             {
-                var c = (char)(random.Next('z' - 'a' + 5) + 'a');
+                var c = previousIsSpace || i == targetLen-1 ?
+                    (char)(random.Next('z' - 'a' + 1) + 'a') :
+                    (char)(random.Next('z' - 'a' + 5) + 'a');
                 if (c > 'z') c = ' ';
+                previousIsSpace = c == ' ';
                 sb.Append(c);
             }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace AltiumTestTask.Sorter
 {
@@ -29,6 +30,8 @@ namespace AltiumTestTask.Sorter
                 return 1;
             }
 
+            var fileLength = new FileInfo(inputFileName).Length;
+
             StreamWriter? outputFile = null;
             try
             {
@@ -44,7 +47,8 @@ namespace AltiumTestTask.Sorter
 
                 try
                 {
-                    SortFile(inputFile, outputFile);
+                    var elapsed = SortFile(inputFile, outputFile);
+                    Console.WriteLine($"File size: {fileLength}, elapsed: {elapsed}");
                 }
                 catch (Exception ex)
                 {
@@ -61,23 +65,25 @@ namespace AltiumTestTask.Sorter
             return 0;
         }
 
-        private const long MAX_MEMORY_USAGE = 2L * 1024 * 1024 * 1024; // 2Gb - can we estimate by host physical memory?
+        private const long MAX_MEMORY_USAGE = 2L * 1024 * 1024 * 1024; // 3Gb - can we estimate by host physical memory?
 
-        private static void SortFile(StreamReader inputFile, TextWriter outputFile)
+        private static TimeSpan SortFile(StreamReader inputFile, TextWriter outputFile)
         {
+            Stopwatch stopwatch = new();
+            stopwatch.Start();
+
             List<string> tmpFileNames = new();
             // suggest maximum number of lines to keep in memory
             var listCapacity = (int)Math.Min(int.MaxValue,
                 MAX_MEMORY_USAGE / (Constants.MAX_STRING_LENGTH - Constants.MIN_STRING_LENGTH) / 2);
             var list = new List<LineData>(listCapacity);
+            Task? sortTask = null;
             while (!inputFile.EndOfStream)
             {
                 // create batch 
                 long loaded = 0;
                 int listIndex = 0;
-// #if DEBUG
-//                 Debug.Write($"Memory before read: {GC.GetTotalMemory(false)}");
-// #endif
+
                 while (loaded < MAX_MEMORY_USAGE && listIndex < listCapacity && !inputFile.EndOfStream)
                 {
                     var line = inputFile.ReadLine();
@@ -87,29 +93,42 @@ namespace AltiumTestTask.Sorter
                     loaded += line.Length * 2L + 24; // approx.
                 }
 
-// #if DEBUG
-//                 Debug.WriteLine($",  after: {GC.GetTotalMemory(false)}");
-// #endif
-                list.Sort();
 
-                if (!inputFile.EndOfStream) // do not save to temp file last batch
+                if (inputFile.EndOfStream)
                 {
-                    var tmpFileName = Path.GetTempFileName();
-                    using (var tmpFile = File.CreateText(tmpFileName))
+                    list.Sort();
+                }
+                else
+                {
+                    var list2 = list;
+                    list = new List<LineData>(listCapacity);
+
+                    if (sortTask is { IsCompleted: false })
                     {
-                        foreach (var d in list)
-                        {
-                            d.Write(tmpFile);
-                        }
+                        sortTask.Wait();
                     }
 
-                    Debug.WriteLine($"Created temp file: {tmpFileName}");
-                    tmpFileNames.Add(tmpFileName);
-                    list.Clear();
-                }
+                    sortTask = Task.Factory.StartNew(() =>
+                    {
+                        list2.Sort();
+                        var tmpFileName = Path.GetTempFileName();
+                        using (var tmpFile = File.CreateText(tmpFileName))
+                        {
+                            foreach (var d in list2)
+                            {
+                                d.Write(tmpFile);
+                            }
+                        }
 
-                GC.Collect();
+                        // Debug.WriteLine($"Created temp file: {tmpFileName}");
+                        tmpFileNames.Add(tmpFileName);
+                        list2 = null;
+                        GC.Collect();
+                    });
+                }
             }
+
+            Console.WriteLine($"Batches read in {stopwatch.Elapsed}");
 
             // input file is all read => collect all tmp and select in order and save to output
             var tmpFiles = tmpFileNames
@@ -139,6 +158,9 @@ namespace AltiumTestTask.Sorter
                     }
                 }
             }
+
+            stopwatch.Stop();
+            return stopwatch.Elapsed;
         }
 
         private class TempFileInfo
@@ -211,6 +233,7 @@ namespace AltiumTestTask.Sorter
 
         private class LineData : IComparable<LineData>, IComparable
         {
+
             public LineData(string value)
             {
                 var sepIndex = value.IndexOf(Constants.SEPARATOR, StringComparison.Ordinal);
