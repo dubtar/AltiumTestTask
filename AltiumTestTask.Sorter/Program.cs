@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace AltiumTestTask.Sorter
 {
@@ -77,7 +76,7 @@ namespace AltiumTestTask.Sorter
             var listCapacity = (int)Math.Min(int.MaxValue,
                 MAX_MEMORY_USAGE / (Constants.MAX_STRING_LENGTH - Constants.MIN_STRING_LENGTH) / 2);
             var list = new List<LineData>(listCapacity);
-            Task? sortTask = null;
+            // Task? sortTask = null;
             while (!inputFile.EndOfStream)
             {
                 // create batch 
@@ -94,38 +93,48 @@ namespace AltiumTestTask.Sorter
                 }
 
 
-                if (inputFile.EndOfStream)
-                {
-                    list.Sort();
-                }
-                else
-                {
-                    var list2 = list;
-                    list = new List<LineData>(listCapacity);
+                list.Sort();
 
-                    if (sortTask is { IsCompleted: false })
+                if (inputFile.EndOfStream) break;
+                
+                var tmpFileName = Path.GetTempFileName();
+                using (var tmpFile = File.CreateText(tmpFileName))
+                {
+                    foreach (var d in list)
                     {
-                        sortTask.Wait();
+                        d.Write(tmpFile);
                     }
-
-                    sortTask = Task.Factory.StartNew(() =>
-                    {
-                        list2.Sort();
-                        var tmpFileName = Path.GetTempFileName();
-                        using (var tmpFile = File.CreateText(tmpFileName))
-                        {
-                            foreach (var d in list2)
-                            {
-                                d.Write(tmpFile);
-                            }
-                        }
-
-                        // Debug.WriteLine($"Created temp file: {tmpFileName}");
-                        tmpFileNames.Add(tmpFileName);
-                        list2 = null;
-                        GC.Collect();
-                    });
                 }
+
+                list.Clear();
+                Console.WriteLine($"Batch {tmpFileNames.Count} in {stopwatch.Elapsed}");
+
+                // Debug.WriteLine($"Created temp file: {tmpFileName}");
+                tmpFileNames.Add(tmpFileName);
+                //     var list2 = list;
+                //     list = new List<LineData>(listCapacity);
+                //
+                //     if (sortTask is { IsCompleted: false })
+                //     {
+                //         sortTask.Wait();
+                //     }
+                //
+                //     sortTask = Task.Factory.StartNew(() =>
+                //     {
+                //         list2.Sort();
+                //         var tmpFileName = Path.GetTempFileName();
+                //         using (var tmpFile = File.CreateText(tmpFileName))
+                //         {
+                //             foreach (var d in list2)
+                //             {
+                //                 d.Write(tmpFile);
+                //             }
+                //         }
+                //
+                //         // Debug.WriteLine($"Created temp file: {tmpFileName}");
+                //         tmpFileNames.Add(tmpFileName);
+                //         list2 = null;
+                //     });
             }
 
             Console.WriteLine($"Batches read in {stopwatch.Elapsed}");
@@ -233,7 +242,6 @@ namespace AltiumTestTask.Sorter
 
         private class LineData : IComparable<LineData>, IComparable
         {
-
             public LineData(string value)
             {
                 var sepIndex = value.IndexOf(Constants.SEPARATOR, StringComparison.Ordinal);
