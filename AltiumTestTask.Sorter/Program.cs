@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace AltiumTestTask.Sorter
 {
@@ -21,7 +22,7 @@ namespace AltiumTestTask.Sorter
             StreamReader inputFile;
             try
             {
-                inputFile = File.OpenText(inputFileName);
+                inputFile = OpenTextFile(inputFileName);
             }
             catch (Exception ex)
             {
@@ -30,7 +31,7 @@ namespace AltiumTestTask.Sorter
             }
 
             var fileLength = new FileInfo(inputFileName).Length;
-
+            
             StreamWriter? outputFile = null;
             try
             {
@@ -64,7 +65,15 @@ namespace AltiumTestTask.Sorter
             return 0;
         }
 
-        private const long MAX_MEMORY_USAGE = 2L * 1024 * 1024 * 1024; // 3Gb - can we estimate by host physical memory?
+        private static StreamReader OpenTextFile(string inputFileName)
+        {
+            var inputFileStream = new FileStream(inputFileName, FileMode.Open, FileAccess.Read, FileShare.Read, 1024,
+                FileOptions.SequentialScan);
+            StreamReader inputFile = new(inputFileStream);
+            return inputFile;
+        }
+
+        private const long MAX_MEMORY_USAGE = 3L * 1024 * 1024 * 1024; // 3Gb - can we estimate by host physical memory?
 
         private static TimeSpan SortFile(StreamReader inputFile, TextWriter outputFile)
         {
@@ -74,7 +83,7 @@ namespace AltiumTestTask.Sorter
             List<string> tmpFileNames = new();
             // suggest maximum number of lines to keep in memory
             var listCapacity = (int)Math.Min(int.MaxValue,
-                MAX_MEMORY_USAGE / (Constants.MAX_STRING_LENGTH - Constants.MIN_STRING_LENGTH) / 2);
+                MAX_MEMORY_USAGE / (Constants.MAX_STRING_LENGTH - Constants.MIN_STRING_LENGTH));
             var list = new List<LineData>(listCapacity);
             // Task? sortTask = null;
             while (!inputFile.EndOfStream)
@@ -143,7 +152,7 @@ namespace AltiumTestTask.Sorter
             var tmpFiles = tmpFileNames
                 .Select(fileName =>
                 {
-                    var file = File.OpenText(fileName);
+                    var file = OpenTextFile(fileName);
                     return new TempFileInfo(file, fileName);
                 }).Union(new[] { new TempFileInfo(list) }).OrderBy(d => d.Data).ToList();
             while (tmpFiles.Count > 0)
